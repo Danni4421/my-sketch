@@ -1,10 +1,7 @@
 import type React from 'react'
-import { useCallback } from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
-import { StorageManager } from '@/shared/lib'
+import { StorageService } from '@/shared/lib'
 import { STORAGE_KEY } from '@/shared/config'
-
-const storage = new StorageManager(STORAGE_KEY)
 
 interface CanvasProps {
   excalidrawAPI: (api: any) => void
@@ -13,7 +10,7 @@ interface CanvasProps {
 }
 
 export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProps) {
-  const initialData = storage.load() || { elements: [], appState: { collaborators: new Map() } }
+  const initialData = StorageService.loadSync(STORAGE_KEY) || { elements: [], appState: { collaborators: new Map() } }
 
   return (
     <Excalidraw
