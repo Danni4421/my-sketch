@@ -1,0 +1,9 @@
+allowBuilds:
+  '@parcel/watcher': set this to true or false
+  esbuild: set this to true or false
+  workerd: set this to true or false
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1136.0'
+  - '@cloudflare/vite-plugin@1.56.0'
+  - miniflare@5.20260918.0-alpha
+  - wrangler@4.135.0
