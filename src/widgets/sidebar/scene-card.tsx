@@ -1,88 +1,134 @@
-import type { Scene } from '@/entities/scene'
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { Scene } from "@/entities/scene";
+import { Image, Pen, Trash, Loader2, Check } from "lucide-react";
+
+type OperationType = 'delete' | 'rename' | 'export-png' | 'export-svg' | null;
 
 interface SceneCardProps {
-  scene: Scene
-  isEditing: boolean
-  editingName: string
-  onEditNameChange: (name: string) => void
-  onStartEdit: () => void
-  onCancelEdit: () => void
-  onRename: () => void
-  onLoad: () => void
-  onDelete: () => void
-  onExport: (format: 'png' | 'svg') => void
+  scene: Scene;
+  isActive: boolean;
+  isEditing: boolean;
+  editingName: string;
+  isOperating: boolean;
+  operationType: OperationType;
+  onEditNameChange: (name: string) => void;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onRename: () => void;
+  onLoad: () => void;
+  onDelete: () => void;
+  onExport: (format: "png" | "svg") => void;
 }
 
 export function SceneCard({
-  scene, isEditing, editingName,
-  onEditNameChange, onStartEdit, onCancelEdit, onRename,
-  onLoad, onDelete, onExport,
+  scene,
+  isActive,
+  isEditing,
+  editingName,
+  isOperating,
+  operationType,
+  onEditNameChange,
+  onStartEdit,
+  onCancelEdit,
+  onRename,
+  onLoad,
+  onDelete,
+  onExport,
 }: SceneCardProps) {
-  return (
-    <div style={cardStyle}>
-      {isEditing ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input
-            autoFocus
-            value={editingName}
-            onChange={(e) => onEditNameChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onRename()
-              if (e.key === 'Escape') onCancelEdit()
-            }}
-            style={inputStyle}
-          />
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={onRename} style={saveBtnStyle}>Save</button>
-            <button onClick={onCancelEdit} style={cancelBtnStyle}>Cancel</button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div onClick={onLoad} style={{ cursor: 'pointer', marginBottom: 8 }}>
-            <div style={nameStyle}>{scene.name || 'Untitled'}</div>
-            <div style={dateStyle}>{scene.savedAt ? new Date(scene.savedAt).toLocaleString() : ''}</div>
-          </div>
-          <div style={actionsStyle}>
-            <button onClick={onStartEdit} style={actionBtnStyle}>Rename</button>
-            <button onClick={() => onExport('png')} style={actionBtnStyle}>PNG</button>
-            <button onClick={() => onExport('svg')} style={actionBtnStyle}>SVG</button>
-            <div style={{ flex: 1 }} />
-            <button onClick={onDelete} style={deleteBtnStyle}>Delete</button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+  const isRenameOp = isOperating && operationType === 'rename';
+  const isDeleteOp = isOperating && operationType === 'delete';
+  const isExportPngOp = isOperating && operationType === 'export-png';
+  const isExportSvgOp = isOperating && operationType === 'export-svg';
 
-const cardStyle: React.CSSProperties = {
-  padding: 12, marginBottom: 6, borderRadius: 8,
-  border: '1px solid #e8e8e8', background: '#fafafa',
-}
-const nameStyle: React.CSSProperties = {
-  fontSize: 13, fontWeight: 500, color: '#1e1e1e',
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-}
-const dateStyle: React.CSSProperties = { fontSize: 11, color: '#888', marginTop: 2 }
-const inputStyle: React.CSSProperties = {
-  padding: '4px 8px', border: '1px solid #ccc', borderRadius: 4,
-  fontSize: 13, fontFamily: 'inherit', outline: 'none',
-}
-const saveBtnStyle: React.CSSProperties = {
-  padding: '4px 10px', borderRadius: 4, border: 'none',
-  background: '#4a90d9', color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-}
-const cancelBtnStyle: React.CSSProperties = {
-  padding: '4px 10px', borderRadius: 4, border: '1px solid #ddd',
-  background: '#fff', color: '#666', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-}
-const actionsStyle: React.CSSProperties = { display: 'flex', gap: 4, alignItems: 'center' }
-const actionBtnStyle: React.CSSProperties = {
-  padding: '3px 8px', borderRadius: 4, border: '1px solid #ddd',
-  background: '#fff', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-}
-const deleteBtnStyle: React.CSSProperties = {
-  padding: '3px 8px', borderRadius: 4, border: '1px solid #e8c0c0',
-  background: '#fff', color: '#d9534f', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+  return (
+    <Card className={`gap-2 p-3 transition-colors ${isActive ? 'border-primary bg-primary/5' : ''}`}>
+      <CardContent className="p-0">
+        {isEditing ? (
+          <div className="flex flex-col gap-2">
+            <Input
+              autoFocus
+              value={editingName}
+              onChange={(e) => onEditNameChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onRename();
+                if (e.key === "Escape") onCancelEdit();
+              }}
+              disabled={isRenameOp}
+              className="h-8 text-sm"
+            />
+            <div className="flex gap-1.5">
+              <Button size="sm" onClick={onRename} disabled={isRenameOp}>
+                {isRenameOp ? <Loader2 className="size-3 animate-spin" /> : "Save"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={onCancelEdit} disabled={isRenameOp}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div onClick={onLoad} className="mb-2 cursor-pointer flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-[13px] font-medium text-card-foreground">
+                  {scene.name || "Untitled"}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {scene.savedAt ? new Date(scene.savedAt).toLocaleString() : ""}
+                </p>
+              </div>
+              {isActive && (
+                <span className="shrink-0 rounded-full bg-primary/10 p-1">
+                  <Check className="size-3 text-primary" />
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon-xs"
+                variant="outline"
+                className="w-auto px-2 text-xs"
+                onClick={onStartEdit}
+                disabled={isOperating}
+              >
+                {isRenameOp ? <Loader2 className="size-3 animate-spin" /> : <Pen />}
+                <span>Rename</span>
+              </Button>
+              <Button
+                size="icon-xs"
+                variant="outline"
+                className="w-auto px-2 text-xs"
+                onClick={() => onExport("png")}
+                disabled={isOperating}
+              >
+                {isExportPngOp ? <Loader2 className="size-3 animate-spin" /> : <Image />}
+                <span>PNG</span>
+              </Button>
+              <Button
+                size="icon-xs"
+                variant="outline"
+                className="w-auto px-2 text-xs"
+                onClick={() => onExport("svg")}
+                disabled={isOperating}
+              >
+                {isExportSvgOp ? <Loader2 className="size-3 animate-spin" /> : <Image />}
+                <span>SVG</span>
+              </Button>
+              <div className="flex-1" />
+              <Button
+                size="icon-xs"
+                variant="outline"
+                className="w-auto px-2 text-[11px] bg-red-50 border-none text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={onDelete}
+                disabled={isOperating}
+              >
+                {isDeleteOp ? <Loader2 className="size-3 animate-spin" /> : <Trash />}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }

@@ -1,86 +1,98 @@
-import { SceneCard } from './scene-card'
-import type { Scene } from '@/entities/scene'
+import { SceneCard } from "./scene-card";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Scene } from "@/entities/scene";
+
+type OperationType = 'delete' | 'rename' | 'export-png' | 'export-svg' | null;
 
 interface SidebarProps {
-  open: boolean
-  scenes: Scene[]
-  loading: boolean
-  editingKey: string | null
-  editingName: string
-  onEditNameChange: (name: string) => void
-  onStartEdit: (key: string, name: string) => void
-  onCancelEdit: () => void
-  onRename: (key: string, name: string) => void
-  onLoad: (key: string) => void
-  onDelete: (key: string) => void
-  onExport: (key: string, format: 'png' | 'svg') => void
-  onRefresh: () => void
-  onClose: () => void
+  open: boolean;
+  scenes: Scene[];
+  loading: boolean;
+  currentSceneKey: string | null;
+  editingKey: string | null;
+  editingName: string;
+  operatingKey: string | null;
+  operationType: OperationType;
+  onEditNameChange: (name: string) => void;
+  onStartEdit: (key: string, name: string) => void;
+  onCancelEdit: () => void;
+  onRename: (key: string, name: string) => void;
+  onLoad: (key: string) => void;
+  onDelete: (key: string) => void;
+  onExport: (key: string, format: "png" | "svg") => void;
+  onRefresh: () => void;
+  onClose: () => void;
 }
 
 export function Sidebar({
-  open, scenes, loading, editingKey, editingName,
-  onEditNameChange, onStartEdit, onCancelEdit, onRename,
-  onLoad, onDelete, onExport, onRefresh, onClose,
+  open,
+  scenes,
+  loading,
+  currentSceneKey,
+  editingKey,
+  editingName,
+  operatingKey,
+  operationType,
+  onEditNameChange,
+  onStartEdit,
+  onCancelEdit,
+  onRename,
+  onLoad,
+  onDelete,
+  onExport,
+  onRefresh,
+  onClose,
 }: SidebarProps) {
-  if (!open) return null
-
   return (
-    <>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 999 }} />
-      <div style={panelStyle}>
-        <div style={headerStyle}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1e1e1e' }}>Saved Scenes</h3>
-          <button onClick={onClose} style={closeBtnStyle}>×</button>
-        </div>
-        <div style={listStyle}>
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+      <SheetContent side="right" className="p-0">
+        <SheetHeader className="border-b">
+          <SheetTitle>Workspaces</SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto px-4">
           {loading ? (
-            <div style={emptyStyle}>Loading...</div>
+            <Skeleton className="w-full h-24" />
           ) : scenes.length === 0 ? (
-            <div style={emptyStyle}>No saved scenes</div>
+            <p className="py-6 text-center text-sm text-muted-foreground italic">
+              No workspaces yet
+            </p>
           ) : (
-            scenes.map((scene) => (
-              <SceneCard
-                key={scene.key}
-                scene={scene}
-                isEditing={editingKey === scene.key}
-                editingName={editingName}
-                onEditNameChange={onEditNameChange}
-                onStartEdit={() => onStartEdit(scene.key, scene.name || '')}
-                onCancelEdit={onCancelEdit}
-                onRename={() => onRename(scene.key, editingName)}
-                onLoad={() => onLoad(scene.key)}
-                onDelete={() => onDelete(scene.key)}
-                onExport={(fmt) => onExport(scene.key, fmt)}
-              />
-            ))
+            <div className="flex flex-col gap-2">
+              {scenes.map((scene) => (
+                <SceneCard
+                  key={scene.key}
+                  scene={scene}
+                  isActive={currentSceneKey === scene.key}
+                  isEditing={editingKey === scene.key}
+                  editingName={editingName}
+                  isOperating={operatingKey === scene.key}
+                  operationType={operatingKey === scene.key ? operationType : null}
+                  onEditNameChange={onEditNameChange}
+                  onStartEdit={() => onStartEdit(scene.key, scene.name || "")}
+                  onCancelEdit={onCancelEdit}
+                  onRename={() => onRename(scene.key, editingName)}
+                  onLoad={() => onLoad(scene.key)}
+                  onDelete={() => onDelete(scene.key)}
+                  onExport={(fmt) => onExport(scene.key, fmt)}
+                />
+              ))}
+            </div>
           )}
         </div>
-        <div style={footerStyle}>
-          <button onClick={onRefresh} style={refreshBtnStyle}>↻ Refresh</button>
-        </div>
-      </div>
-    </>
-  )
-}
-
-const panelStyle: React.CSSProperties = {
-  position: 'absolute', top: 0, right: 0, bottom: 0, width: 340,
-  background: '#fff', boxShadow: '-2px 0 12px rgba(0,0,0,0.15)',
-  zIndex: 1000, display: 'flex', flexDirection: 'column',
-  fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-}
-const headerStyle: React.CSSProperties = {
-  padding: '16px 16px 12px', borderBottom: '1px solid #e0e0e0',
-  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-}
-const closeBtnStyle: React.CSSProperties = {
-  border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: '#666', padding: '0 4px',
-}
-const listStyle: React.CSSProperties = { flex: 1, overflowY: 'auto', padding: 8 }
-const emptyStyle: React.CSSProperties = { textAlign: 'center', padding: 24, color: '#999', fontSize: 13 }
-const footerStyle: React.CSSProperties = { padding: '12px 16px', borderTop: '1px solid #e0e0e0' }
-const refreshBtnStyle: React.CSSProperties = {
-  width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ddd',
-  background: '#fff', color: '#333', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+        <SheetFooter className="border-t">
+          <Button variant="outline" onClick={onRefresh}>
+            ↻ Refresh
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
 }

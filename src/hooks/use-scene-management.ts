@@ -10,7 +10,7 @@ import { useSceneExport } from '@/features/scene-export'
 
 const runtime = Runtime.defaultRuntime
 
-export function useSceneManagement(apiRef: React.MutableRefObject<any>) {
+export function useSceneManagement(apiRef: React.MutableRefObject<any>, resetCanvas: () => void) {
   const [saveStatus, setSaveStatus] = useState<SceneStatus>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -18,13 +18,26 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>) {
   const [loadingScenes, setLoadingScenes] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [currentSceneKey, setCurrentSceneKey] = useState<string | null>(null)
+  const [operatingKey, setOperatingKey] = useState<string | null>(null)
+  const [operatingType, setOperatingType] = useState<'delete' | 'rename' | 'export-png' | 'export-svg' | null>(null)
 
   const sceneApi = new SceneApi()
-  const { save } = useSceneSave()
+  const { save, update: updateScene } = useSceneSave()
   const { load: loadScene } = useSceneLoad(apiRef)
   const { remove: deleteScene } = useSceneDelete()
   const { rename: renameScene } = useSceneRename()
   const { exportScene } = useSceneExport()
+
+  const startOperation = (key: string, type: typeof operatingType) => {
+    setOperatingKey(key)
+    setOperatingType(type)
+  }
+
+  const endOperation = () => {
+    setOperatingKey(null)
+    setOperatingType(null)
+  }
 
   const fetchScenes = useCallback(async () => {
     setLoadingScenes(true)
@@ -44,41 +57,80 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>) {
   const loadSceneHandler = useCallback(async (key: string) => {
     const exit = await Runtime.runPromiseExit(runtime)(loadScene(key))
     if (exit._tag === 'Success' && exit.value) {
+      setCurrentSceneKey(key)
       setSidebarOpen(false)
     }
   }, [loadScene])
 
   const deleteSceneHandler = useCallback(async (key: string) => {
+    startOperation(key, 'delete')
     const exit = await Runtime.runPromiseExit(runtime)(deleteScene(key))
     if (exit._tag === 'Success' && exit.value) {
       setScenes((prev) => prev.filter((s) => s.key !== key))
+      if (currentSceneKey === key) {
+        setCurrentSceneKey(null)
+      }
     }
-  }, [deleteScene])
+    endOperation()
+  }, [deleteScene, currentSceneKey])
 
   const renameSceneHandler = useCallback(async (key: string, newName: string) => {
+    startOperation(key, 'rename')
     const exit = await Runtime.runPromiseExit(runtime)(renameScene(key, newName))
     if (exit._tag === 'Success' && exit.value) {
       setEditingKey(null)
       setEditingName('')
       await fetchScenes()
     }
+    endOperation()
   }, [renameScene, fetchScenes])
 
   const exportSceneHandler = useCallback(async (key: string, format: ExportFormat) => {
-    Runtime.runPromiseExit(runtime)(
+    startOperation(key, format === 'png' ? 'export-png' : 'export-svg')
+    await Runtime.runPromiseExit(runtime)(
       exportScene(key, format).pipe(Effect.catchAll(() => Effect.void)),
     )
+    endOperation()
   }, [exportScene])
 
   const saveToServer = useCallback(async () => {
     if (!apiRef.current) return
+
+    if (currentSceneKey) {
+      setSaveStatus('saving')
+      const exit = await Runtime.runPromiseExit(runtime)(
+        updateScene(currentSceneKey, {
+          elements: [...apiRef.current.getSceneElements()],
+          appState: apiRef.current.getAppState(),
+        }, setSaveStatus),
+      )
+      if (exit._tag === 'Failure') {
+        setErrorMsg('Save failed')
+      }
+    } else {
+      const exit = await Runtime.runPromiseExit(runtime)(
+        save(apiRef.current.getSceneElements(), apiRef.current.getAppState(), setSaveStatus),
+      )
+      if (exit._tag === 'Success') {
+        setCurrentSceneKey(exit.value)
+      } else {
+        setErrorMsg('Save failed')
+      }
+    }
+  }, [save, updateScene, currentSceneKey])
+
+  const saveAsNew = useCallback(async () => {
+    if (!apiRef.current) return
     const exit = await Runtime.runPromiseExit(runtime)(
       save(apiRef.current.getSceneElements(), apiRef.current.getAppState(), setSaveStatus),
     )
-    if (exit._tag === 'Failure') {
+    if (exit._tag === 'Success') {
+      setCurrentSceneKey(exit.value)
+      resetCanvas()
+    } else {
       setErrorMsg('Save failed')
     }
-  }, [save])
+  }, [save, resetCanvas])
 
   return {
     saveStatus,
@@ -88,6 +140,9 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>) {
     loadingScenes,
     editingKey,
     editingName,
+    currentSceneKey,
+    operatingKey,
+    operatingType,
     setEditingName,
     setEditingKey,
     startEdit: (key: string, name: string) => { setEditingKey(key); setEditingName(name) },
@@ -98,6 +153,7 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>) {
     renameScene: renameSceneHandler,
     exportScene: exportSceneHandler,
     saveToServer,
+    saveAsNew,
     refreshScenes: fetchScenes,
     closeSidebar: () => setSidebarOpen(false),
   }

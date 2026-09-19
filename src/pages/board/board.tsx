@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useExcalidrawAPI } from '@/widgets/canvas'
 import { useAutoSave } from '@/features/scene-save'
 import { useLocalExport } from '@/features/scene-export'
@@ -9,16 +9,24 @@ import { Toolbar } from '@/widgets/toolbar'
 import { Sidebar } from '@/widgets/sidebar'
 
 export function BoardPage() {
-  const { apiRef, handleAPI, getElements, getAppState } = useExcalidrawAPI()
+  const { apiRef, handleAPI, getElements, getAppState, resetCanvas } = useExcalidrawAPI()
   const autoSave = useAutoSave(getElements, getAppState)
   const { exportPNG, exportSVG } = useLocalExport(getElements, getAppState)
 
   const {
     saveStatus, errorMsg, sidebarOpen, scenes, loadingScenes,
-    editingKey, editingName, setEditingName, setEditingKey,
+    editingKey, editingName, currentSceneKey,
+    operatingKey, operatingType,
+    setEditingName, setEditingKey,
     startEdit, cancelEdit, openSidebar, loadScene, deleteScene,
-    renameScene, exportScene, saveToServer, refreshScenes, closeSidebar,
-  } = useSceneManagement(apiRef)
+    renameScene, exportScene, saveToServer, saveAsNew, refreshScenes, closeSidebar,
+  } = useSceneManagement(apiRef, resetCanvas)
+
+  const currentSceneName = useMemo(() => {
+    if (!currentSceneKey) return null
+    const scene = scenes.find((s) => s.key === currentSceneKey)
+    return scene?.name ?? null
+  }, [currentSceneKey, scenes])
 
   const handleSave = useCallback(() => saveToServer(), [saveToServer])
 
@@ -35,8 +43,11 @@ export function BoardPage() {
         open={sidebarOpen}
         scenes={scenes}
         loading={loadingScenes}
+        currentSceneKey={currentSceneKey}
         editingKey={editingKey}
         editingName={editingName}
+        operatingKey={operatingKey}
+        operationType={operatingType}
         onEditNameChange={setEditingName}
         onStartEdit={startEdit}
         onCancelEdit={cancelEdit}
@@ -54,7 +65,10 @@ export function BoardPage() {
           <Toolbar
             saveStatus={saveStatus}
             errorMsg={errorMsg}
+            currentSceneName={currentSceneName}
+            hasCurrentScene={currentSceneKey !== null}
             onSave={handleSave}
+            onSaveAsNew={saveAsNew}
             onOpenSidebar={openSidebar}
             onExportPNG={exportPNG}
             onExportSVG={exportSVG}

@@ -30,6 +30,16 @@ export class ParseError {
 
 type SceneApiError = ApiError | NetworkError | ParseError
 
+function getAuthHeaders(): Record<string, string> {
+  try {
+    const token = localStorage.getItem('sketch-board-token')
+    if (token) {
+      return { Authorization: `Bearer ${token}` }
+    }
+  } catch {}
+  return {}
+}
+
 export class SceneApi {
   private base: string
 
@@ -40,7 +50,7 @@ export class SceneApi {
   fetchAll(): Effect.Effect<readonly Scene[], SceneApiError> {
     return Effect.gen(this, function* () {
       const res = yield* Effect.tryPromise({
-        try: () => fetch(this.base),
+        try: () => fetch(this.base, { headers: getAuthHeaders() }),
         catch: () => new NetworkError('Failed to connect to server'),
       })
 
@@ -60,7 +70,7 @@ export class SceneApi {
   fetchOne(key: string): Effect.Effect<Scene, SceneApiError> {
     return Effect.gen(this, function* () {
       const res = yield* Effect.tryPromise({
-        try: () => fetch(`${this.base}/${encodeURIComponent(key)}`),
+        try: () => fetch(`${this.base}/${encodeURIComponent(key)}`, { headers: getAuthHeaders() }),
         catch: () => new NetworkError('Failed to connect to server'),
       })
 
@@ -83,7 +93,10 @@ export class SceneApi {
         try: () =>
           fetch(this.base, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders(),
+            },
             body: JSON.stringify(scene),
           }),
         catch: () => new NetworkError('Failed to connect to server'),
@@ -105,25 +118,38 @@ export class SceneApi {
   remove(key: string): Effect.Effect<boolean, NetworkError> {
     return Effect.gen(this, function* () {
       const res = yield* Effect.tryPromise({
-        try: () => fetch(`${this.base}/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+        try: () => fetch(`${this.base}/${encodeURIComponent(key)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        }),
         catch: () => new NetworkError('Failed to connect to server'),
       })
       return res.ok
     })
   }
 
-  rename(key: string, newName: string): Effect.Effect<boolean, SceneApiError> {
+  update(key: string, scene: Partial<SceneCreate>): Effect.Effect<boolean, SceneApiError> {
     return Effect.gen(this, function* () {
-      const scene = yield* this.fetchOne(key)
-      yield* this.save({
-        ...scene,
-        name: newName,
-        type: scene.type || 'sketch-board',
-        elements: scene.elements || [],
-        appState: scene.appState || {},
-        savedAt: scene.savedAt || new Date().toISOString(),
+      const res = yield* Effect.tryPromise({
+        try: () =>
+          fetch(`${this.base}/${encodeURIComponent(key)}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify(scene),
+          }),
+        catch: () => new NetworkError('Failed to connect to server'),
       })
-      return yield* this.remove(key)
+      if (!res.ok) {
+        return yield* Effect.fail(new ApiError('Failed to update scene', res.status))
+      }
+      return true
     })
+  }
+
+  rename(key: string, newName: string): Effect.Effect<boolean, SceneApiError> {
+    return this.update(key, { name: newName })
   }
 }

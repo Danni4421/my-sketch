@@ -1,0 +1,236 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYREGULAR.OTF") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYMEDIUM.OTF") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYBOLD.OTF") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYULTRALIGHTITALIC.OTF") format("opentype");
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYTHINITALIC.OTF") format("opentype");
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYLIGHTITALIC.OTF") format("opentype");
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYSEMIBOLDITALIC.OTF") format("opentype");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYHEAVYITALIC.OTF") format("opentype");
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("../../assets/fonts/sf-pro-display/SFPRODISPLAYBLACKITALIC.OTF") format("opentype");
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "SF Pro Display", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop {
+    border-color: var(--border);
+    outline-color: var(--ring);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font-sans);
+  }
+
+  canvas {
+    display: block;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+.excalidraw {
+  --color-selection: #f2765e;
+  --color-primary: #f2765e;
+  --color-primary-darker: #da6a55;
+  --color-primary-darkest: #c25e4b;
+  --color-primary-light: #fce4df;
+  --color-primary-light-darker: #fbd6cf;
+  --color-primary-hover: #da6a55;
+  --color-brand-hover: #da6a55;
+  --color-brand-active: #c25e4b;
+  --color-on-primary-container: #301813;
+  --color-surface-primary-container: #fce4df;
+  --focus-highlight-color: #fbd6cf;
+  --link-color: #c25e4b;
+  --select-highlight-color: #da6a55;
+}
+
+/* A few Excalidraw components hardcode their own blue accent instead of
+   using the CSS vars above (upstream inconsistency) — override directly. */
+.excalidraw .Checkbox:hover:not(.is-checked) .Checkbox-box:not(:focus) {
+  box-shadow: 0 0 0 2px #da6a55;
+}
+.excalidraw .Checkbox:active .Checkbox-box {
+  box-shadow: 0 0 2px 1px inset #c25e4b !important;
+}
+.excalidraw .Checkbox:hover .Checkbox-box {
+  background-color: rgba(242, 118, 94, 0.15);
+}
+.excalidraw .Checkbox.is-checked .Checkbox-box {
+  background-color: #fce4df;
+}
+.excalidraw .Checkbox.is-checked:hover .Checkbox-box {
+  background-color: #fbd6cf;
+}
+.excalidraw .Checkbox .Checkbox-box {
+  box-shadow: 0 0 0 2px #c25e4b;
+  color: #c25e4b;
+}
+.excalidraw .Checkbox .Checkbox-box:focus {
+  box-shadow: 0 0 0 3px #c25e4b;
+}
+.excalidraw-hyperlinkContainer button {
+  color: #c25e4b;
+}
+.excalidraw .publish-library__buttons--confirm.ToolIcon_type_button,
+.excalidraw .publish-library-success-close.ToolIcon_type_button {
+  background-color: #c25e4b;
+}
+.excalidraw .publish-library__buttons--confirm.ToolIcon_type_button:hover,
+.excalidraw .publish-library-success-close.ToolIcon_type_button:hover {
+  background-color: #a95342;
+}
+.excalidraw .PasteChartDialog .ChartPreview:hover {
+  border-color: #da6a55;
+}
+
+.excalidraw .App-menu_top-right {
+  overflow: visible !important;
+  z-index: 100 !important;
+}
+
+.excalidraw .App-menu_top-right > div {
+  overflow: visible !important;
+}

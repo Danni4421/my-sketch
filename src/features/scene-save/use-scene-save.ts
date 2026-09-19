@@ -44,5 +44,28 @@ export function useSceneSave() {
       }),
     )
 
-  return { save }
+  const update = (
+    key: string,
+    data: Partial<SceneCreate>,
+    onStatus?: (status: SceneStatus) => void,
+  ): Effect.Effect<boolean, SaveError> =>
+    Effect.gen(function* () {
+      onStatus?.('saving')
+
+      const result = yield* api.update(key, data).pipe(
+        Effect.mapError(() => new SaveError('Failed to update scene')),
+      )
+
+      onStatus?.('saved')
+      setTimeout(() => onStatus?.('idle'), 2000)
+
+      return result
+    }).pipe(
+      Effect.catchAll((e) => {
+        onStatus?.('error')
+        return Effect.fail(e)
+      }),
+    )
+
+  return { save, update }
 }

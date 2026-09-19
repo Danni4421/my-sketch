@@ -1,46 +1,98 @@
+import { Cloud, FolderOpen, Image, Ruler, Loader2, Check, AlertTriangle, Plus, Layers } from 'lucide-react'
+import { useAuth, LoginButton, UserMenu, UserAvatar } from '@/features/auth'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Skeleton } from '@/components/ui/skeleton'
+
 interface ToolbarProps {
   saveStatus: 'idle' | 'saving' | 'saved' | 'error'
   errorMsg: string
+  currentSceneName: string | null
+  hasCurrentScene: boolean
   onSave: () => void
+  onSaveAsNew: () => void
   onOpenSidebar: () => void
   onExportPNG: () => void
   onExportSVG: () => void
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  idle: '#4a90d9', saving: '#f0ad4e', saved: '#5cb85c', error: '#d9534f',
-}
-const STATUS_LABELS: Record<string, string> = {
-  idle: '☁️', saving: '⏳', saved: '✅', error: '❌',
-}
-const BTN: React.CSSProperties = {
-  padding: '4px 12px', borderRadius: 6, border: 'none',
-  background: '#2a2a4e', color: '#fff', fontSize: 14,
-  cursor: 'pointer', fontFamily: '-apple-system, sans-serif',
+const STATUS_ICON: Record<ToolbarProps['saveStatus'], React.ReactNode> = {
+  idle: <Cloud className="size-4" />,
+  saving: <Loader2 className="size-4 animate-spin" />,
+  saved: <Check className="size-4" />,
+  error: <AlertTriangle className="size-4" />,
 }
 
-export function Toolbar({ saveStatus, errorMsg, onSave, onOpenSidebar, onExportPNG, onExportSVG }: ToolbarProps) {
+export function Toolbar({ saveStatus, errorMsg, currentSceneName, hasCurrentScene, onSave, onSaveAsNew, onOpenSidebar, onExportPNG, onExportSVG }: ToolbarProps) {
+  const { isAuthenticated, isLoading } = useAuth()
+
   return (
-    <div style={{ display: 'flex', gap: 6, padding: '4px 8px', alignItems: 'center', position: 'relative' }}>
-      <button onClick={onSave} disabled={saveStatus === 'saving'} title="Save to server" style={{
-        ...BTN,
-        background: STATUS_COLORS[saveStatus],
-        cursor: saveStatus === 'saving' ? 'wait' : 'pointer',
-        opacity: saveStatus === 'saving' ? 0.7 : 1,
-      }}>
-        {STATUS_LABELS[saveStatus]}
-      </button>
-      <button onClick={onOpenSidebar} title="Load from server" style={BTN}>📂</button>
-      <button onClick={onExportPNG} title="Export PNG" style={BTN}>🖼️</button>
-      <button onClick={onExportSVG} title="Export SVG" style={BTN}>📐</button>
-      {errorMsg && (
-        <div style={{
-          position: 'absolute', top: '-30px', right: 0,
-          background: '#d9534f', color: '#fff', padding: '4px 8px',
-          borderRadius: 4, fontSize: 11, whiteSpace: 'nowrap',
-          fontFamily: '-apple-system, sans-serif', zIndex: 100,
-        }}>{errorMsg}</div>
-      )}
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="icon" className="rounded-full" title="Save & account">
+          {isLoading ? (
+            <Skeleton className="size-9 rounded-full" />
+          ) : isAuthenticated ? (
+            <UserAvatar className="size-9 rounded-full border border-neutral-100" />
+          ) : (
+            STATUS_ICON[saveStatus]
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64">
+        <div className="flex flex-col gap-3">
+          {hasCurrentScene && currentSceneName && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Layers className="size-3.5" />
+              <span className="truncate font-medium text-foreground">{currentSceneName}</span>
+            </div>
+          )}
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              onClick={onSave}
+              disabled={saveStatus === 'saving'}
+              title={hasCurrentScene ? "Save changes" : "Save to server"}
+            >
+              {STATUS_ICON[saveStatus]}
+              {hasCurrentScene ? "Save" : "Save"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSaveAsNew}
+              disabled={saveStatus === 'saving'}
+              title="Create new workspace"
+            >
+              <Plus className="size-3" />
+            </Button>
+            <Button variant="secondary" size="icon-sm" onClick={onOpenSidebar} title="Switch workspace">
+              <FolderOpen className="size-4" />
+            </Button>
+            <Button variant="secondary" size="icon-sm" onClick={onExportPNG} title="Export PNG">
+              <Image className="size-4" />
+            </Button>
+            <Button variant="secondary" size="icon-sm" onClick={onExportSVG} title="Export SVG">
+              <Ruler className="size-4" />
+            </Button>
+          </div>
+          {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+          <div className="pt-3">
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-7 rounded-full" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ) : isAuthenticated ? (
+              <UserMenu />
+            ) : (
+              <LoginButton />
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
