@@ -1,43 +1,129 @@
+import { Effect } from 'effect'
 import { API_URL } from '@/shared/config'
-import type { Scene } from './scene.model'
+import type { Scene, SceneCreate } from './scene.model'
+
+export class ApiError {
+  readonly _tag = 'ApiError' as const
+  readonly message: string
+  readonly status?: number
+  constructor(message: string, status?: number) {
+    this.message = message
+    this.status = status
+  }
+}
+
+export class NetworkError {
+  readonly _tag = 'NetworkError' as const
+  readonly message: string
+  constructor(message: string) {
+    this.message = message
+  }
+}
+
+export class ParseError {
+  readonly _tag = 'ParseError' as const
+  readonly message: string
+  constructor(message: string) {
+    this.message = message
+  }
+}
+
+type SceneApiError = ApiError | NetworkError | ParseError
 
 export class SceneApi {
-  private readonly base = `${API_URL}/api/scenes`
+  private base: string
 
-  async fetchAll(): Promise<Scene[]> {
-    const res = await fetch(this.base)
-    if (!res.ok) return []
-    return res.json()
+  constructor() {
+    this.base = `${API_URL}/api/scenes`
   }
 
-  async fetchOne(key: string): Promise<Scene | null> {
-    const res = await fetch(`${this.base}/${encodeURIComponent(key)}`)
-    if (!res.ok) return null
-    return res.json()
-  }
+  fetchAll(): Effect.Effect<readonly Scene[], SceneApiError> {
+    return Effect.gen(this, function* () {
+      const res = yield* Effect.tryPromise({
+        try: () => fetch(this.base),
+        catch: () => new NetworkError('Failed to connect to server'),
+      })
 
-  async save(scene: Scene): Promise<string | null> {
-    const res = await fetch(this.base, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scene),
+      if (!res.ok) {
+        return yield* Effect.fail(new ApiError('Failed to fetch scenes', res.status))
+      }
+
+      const data = yield* Effect.tryPromise({
+        try: () => res.json() as Promise<readonly Scene[]>,
+        catch: () => new ParseError('Failed to parse scene list'),
+      })
+
+      return data
     })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.key ?? null
   }
 
-  async remove(key: string): Promise<boolean> {
-    const res = await fetch(`${this.base}/${encodeURIComponent(key)}`, { method: 'DELETE' })
-    return res.ok
+  fetchOne(key: string): Effect.Effect<Scene, SceneApiError> {
+    return Effect.gen(this, function* () {
+      const res = yield* Effect.tryPromise({
+        try: () => fetch(`${this.base}/${encodeURIComponent(key)}`),
+        catch: () => new NetworkError('Failed to connect to server'),
+      })
+
+      if (!res.ok) {
+        return yield* Effect.fail(new ApiError('Scene not found', res.status))
+      }
+
+      const data = yield* Effect.tryPromise({
+        try: () => res.json() as Promise<Scene>,
+        catch: () => new ParseError('Failed to parse scene'),
+      })
+
+      return data
+    })
   }
 
-  async rename(key: string, newName: string): Promise<boolean> {
-    const scene = await this.fetchOne(key)
-    if (!scene) return false
-    scene.name = newName
-    const saved = await this.save(scene)
-    if (!saved) return false
-    return this.remove(key)
+  save(scene: SceneCreate): Effect.Effect<string, SceneApiError> {
+    return Effect.gen(this, function* () {
+      const res = yield* Effect.tryPromise({
+        try: () =>
+          fetch(this.base, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scene),
+          }),
+        catch: () => new NetworkError('Failed to connect to server'),
+      })
+
+      if (!res.ok) {
+        return yield* Effect.fail(new ApiError('Failed to save scene', res.status))
+      }
+
+      const data = yield* Effect.tryPromise({
+        try: () => res.json() as Promise<{ key: string }>,
+        catch: () => new ParseError('Failed to parse save response'),
+      })
+
+      return data.key
+    })
+  }
+
+  remove(key: string): Effect.Effect<boolean, NetworkError> {
+    return Effect.gen(this, function* () {
+      const res = yield* Effect.tryPromise({
+        try: () => fetch(`${this.base}/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+        catch: () => new NetworkError('Failed to connect to server'),
+      })
+      return res.ok
+    })
+  }
+
+  rename(key: string, newName: string): Effect.Effect<boolean, SceneApiError> {
+    return Effect.gen(this, function* () {
+      const scene = yield* this.fetchOne(key)
+      yield* this.save({
+        ...scene,
+        name: newName,
+        type: scene.type || 'sketch-board',
+        elements: scene.elements || [],
+        appState: scene.appState || {},
+        savedAt: scene.savedAt || new Date().toISOString(),
+      })
+      return yield* this.remove(key)
+    })
   }
 }
