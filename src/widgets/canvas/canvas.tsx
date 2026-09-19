@@ -4,10 +4,12 @@ import { StorageService } from '@/shared/lib'
 import { STORAGE_KEY } from '@/shared/config'
 
 function deserializeAppState(appState: any) {
-  if (appState?.collaborators && !appState.collaborators.forEach) {
-    return { ...appState, collaborators: new Map(appState.collaborators) }
-  }
-  return appState
+  if (!appState) return { collaborators: new Map() }
+
+  const collab = appState.collaborators
+  if (collab instanceof Map) return appState
+  if (Array.isArray(collab)) return { ...appState, collaborators: new Map(collab) }
+  return { ...appState, collaborators: new Map() }
 }
 
 interface CanvasProps {
@@ -18,9 +20,10 @@ interface CanvasProps {
 
 export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProps) {
   const saved = StorageService.loadSync<{ elements?: any[]; appState?: any }>(STORAGE_KEY)
-  const initialData = saved
-    ? { elements: saved.elements || [], appState: deserializeAppState(saved.appState) }
-    : { elements: [], appState: { collaborators: new Map() } }
+  const initialData = {
+    elements: saved?.elements || [],
+    appState: deserializeAppState(saved?.appState),
+  }
 
   return (
     <Excalidraw

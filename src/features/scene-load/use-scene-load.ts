@@ -12,6 +12,14 @@ export class LoadError {
   }
 }
 
+function serializeForStorage(scene: any) {
+  const appState = scene.appState
+  if (appState?.collaborators instanceof Map) {
+    return { ...scene, appState: { ...appState, collaborators: Array.from(appState.collaborators.entries()) } }
+  }
+  return scene
+}
+
 export function useSceneLoad(apiRef: React.MutableRefObject<any>) {
   const api = new SceneApi()
 
@@ -26,7 +34,7 @@ export function useSceneLoad(apiRef: React.MutableRefObject<any>) {
         appState: fixCollaborators(scene.appState || {}),
       }
 
-      yield* StorageService.save(STORAGE_KEY, fixedScene).pipe(
+      yield* StorageService.save(STORAGE_KEY, serializeForStorage(fixedScene)).pipe(
         Effect.mapError(() => new LoadError('Failed to save to local storage')),
       )
 
