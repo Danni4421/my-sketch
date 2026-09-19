@@ -1,21 +1,40 @@
-import { useCallback } from 'react'
+import { Effect } from 'effect'
 import { SceneApi } from '@/entities/scene'
-import { fixCollaborators } from '@/shared/lib'
-import { StorageManager } from '@/shared/lib'
+import { fixCollaborators } from '@/shared/lib/excalidraw-utils'
+import { StorageService, StorageError } from '@/shared/lib/storage-service'
 import { STORAGE_KEY } from '@/shared/config'
 
-const api = new SceneApi()
-const storage = new StorageManager(STORAGE_KEY)
+export class LoadError {
+  readonly _tag = 'LoadError' as const
+  readonly message: string
+  constructor(message: string) {
+    this.message = message
+  }
+}
 
 export function useSceneLoad(apiRef: React.MutableRefObject<any>) {
-  const load = useCallback(async (key: string): Promise<boolean> => {
-    const scene = await api.fetchOne(key)
-    if (!scene) return false
-    scene.appState = fixCollaborators(scene.appState || {})
-    storage.save(scene)
-    apiRef.current?.updateScene(scene)
-    return true
-  }, [apiRef])
+  const api = new SceneApi()
+
+  const load = (key: string): Effect.Effect<boolean, LoadError> =>
+    Effect.gen(function* () {
+      const scene = yield* api.fetchOne(key).pipe(
+        Effect.mapError(() => new LoadError(`Failed to fetch scene: ${key}`)),
+      )
+
+      const fixedScene = {
+        ...scene,
+        appState: fixCollaborators(scene.appState || {}),
+      }
+
+      yield* StorageService.save(STORAGE_KEY, fixedScene).pipe(
+        Effect.mapError(() => new LoadError('Failed to save to local storage')),
+      )
+
+      apiRef.current?.updateScene(fixedScene)
+      return true
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(false)),
+    )
 
   return { load }
 }

@@ -1,30 +1,48 @@
-import { useCallback } from 'react'
-import { SceneApi } from '@/entities/scene'
+import { Effect } from 'effect'
+import { SceneApi, type SceneCreate } from '@/entities/scene'
+import type { SceneStatus } from '@/shared/lib/types'
 
-const api = new SceneApi()
+export class SaveError {
+  readonly _tag = 'SaveError' as const
+  readonly message: string
+  constructor(message: string) {
+    this.message = message
+  }
+}
 
-export function useSceneSave(onStatus?: (status: 'idle' | 'saving' | 'saved' | 'error') => void) {
-  const save = useCallback(async (elements: any[], appState: any) => {
-    onStatus?.('saving')
-    try {
-      const key = await api.save({
-        key: '',
+export function useSceneSave() {
+  const api = new SceneApi()
+
+  const save = (
+    elements: readonly unknown[],
+    appState: Record<string, unknown>,
+    onStatus?: (status: SceneStatus) => void,
+  ): Effect.Effect<string, SaveError> =>
+    Effect.gen(function* () {
+      onStatus?.('saving')
+
+      const scene: SceneCreate = {
         type: 'sketch-board',
         name: `Sketch ${new Date().toLocaleString()}`,
-        elements,
+        elements: [...elements],
         appState,
         savedAt: new Date().toISOString(),
-      })
-      if (key) {
-        onStatus?.('saved')
-        setTimeout(() => onStatus?.('idle'), 2000)
-      } else {
-        onStatus?.('error')
       }
-    } catch {
-      onStatus?.('error')
-    }
-  }, [onStatus])
+
+      const result = yield* api.save(scene).pipe(
+        Effect.mapError(() => new SaveError('Failed to save scene')),
+      )
+
+      onStatus?.('saved')
+      setTimeout(() => onStatus?.('idle'), 2000)
+
+      return result
+    }).pipe(
+      Effect.catchAll((e) => {
+        onStatus?.('error')
+        return Effect.fail(e)
+      }),
+    )
 
   return { save }
 }
