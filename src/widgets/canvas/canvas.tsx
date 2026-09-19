@@ -1,7 +1,8 @@
 import type React from 'react'
-import { Excalidraw } from '@excalidraw/excalidraw'
+import { useState, useCallback } from 'react'
+import { Excalidraw, useHandleLibrary } from '@excalidraw/excalidraw'
 import { StorageService } from '@/shared/lib'
-import { STORAGE_KEY } from '@/shared/config'
+import { STORAGE_KEY, LIBRARY_STORAGE_KEY } from '@/shared/config'
 
 function deserializeAppState(appState: any) {
   if (!appState) return { collaborators: new Map() }
@@ -18,7 +19,35 @@ interface CanvasProps {
   renderTopRightUI?: (isMobile: boolean, appState: any) => React.JSX.Element | null
 }
 
+const libraryAdapter = {
+  load: () => {
+    try {
+      const data = localStorage.getItem(LIBRARY_STORAGE_KEY)
+      if (data) return { libraryItems: JSON.parse(data) }
+    } catch {}
+    return null
+  },
+  save: ({ libraryItems }: { libraryItems: any[] }) => {
+    try {
+      localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryItems))
+    } catch {}
+  },
+}
+
 export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProps) {
+  const [api, setApi] = useState<any>(null)
+
+  const handleAPI = useCallback((a: any) => {
+    setApi(a)
+    excalidrawAPI(a)
+  }, [excalidrawAPI])
+
+  useHandleLibrary({
+    excalidrawAPI: api,
+    adapter: libraryAdapter,
+    validateLibraryUrl: () => true,
+  })
+
   const saved = StorageService.loadSync<{ elements?: any[]; appState?: any }>(STORAGE_KEY)
   const initialData = {
     elements: saved?.elements || [],
@@ -44,7 +73,7 @@ export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProp
       }}
       initialData={initialData}
       onChange={onChange}
-      excalidrawAPI={excalidrawAPI}
+      excalidrawAPI={handleAPI}
     />
   )
 }
