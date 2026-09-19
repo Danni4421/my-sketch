@@ -10,10 +10,10 @@ export class ExportError {
 }
 
 export function fixCollaborators(appState: Record<string, unknown>): Record<string, unknown> {
-  if (!appState.collaborators || !(appState.collaborators as any).forEach) {
-    return { ...appState, collaborators: new Map() }
-  }
-  return appState
+  const collab = appState.collaborators
+  if (collab instanceof Map) return appState
+  if (Array.isArray(collab)) return { ...appState, collaborators: new Map(collab) }
+  return { ...appState, collaborators: new Map() }
 }
 
 export function downloadBlob(blob: Blob, filename: string): Effect.Effect<void, ExportError> {

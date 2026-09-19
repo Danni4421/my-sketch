@@ -3,6 +3,13 @@ import { Excalidraw } from '@excalidraw/excalidraw'
 import { StorageService } from '@/shared/lib'
 import { STORAGE_KEY } from '@/shared/config'
 
+function deserializeAppState(appState: any) {
+  if (appState?.collaborators && !appState.collaborators.forEach) {
+    return { ...appState, collaborators: new Map(appState.collaborators) }
+  }
+  return appState
+}
+
 interface CanvasProps {
   excalidrawAPI: (api: any) => void
   onChange: (elements: any, appState: any, files: any) => void
@@ -10,7 +17,10 @@ interface CanvasProps {
 }
 
 export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProps) {
-  const initialData = StorageService.loadSync(STORAGE_KEY) || { elements: [], appState: { collaborators: new Map() } }
+  const saved = StorageService.loadSync<{ elements?: any[]; appState?: any }>(STORAGE_KEY)
+  const initialData = saved
+    ? { elements: saved.elements || [], appState: deserializeAppState(saved.appState) }
+    : { elements: [], appState: { collaborators: new Map() } }
 
   return (
     <Excalidraw
