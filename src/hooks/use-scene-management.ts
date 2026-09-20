@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Effect, Runtime } from 'effect'
 import { SceneApi, type Scene } from '@/entities/scene'
 import type { SceneStatus, ExportFormat } from '@/shared/lib/types'
+import { SCENE_KEY_STORAGE } from '@/shared/config'
 import { useSceneSave } from '@/features/scene-save'
 import { useSceneLoad } from '@/features/scene-load'
 import { useSceneDelete } from '@/features/scene-delete'
@@ -9,6 +10,24 @@ import { useSceneRename } from '@/features/scene-rename'
 import { useSceneExport } from '@/features/scene-export'
 
 const runtime = Runtime.defaultRuntime
+
+function loadPersistedSceneKey(): string | null {
+  try {
+    return localStorage.getItem(SCENE_KEY_STORAGE)
+  } catch {
+    return null
+  }
+}
+
+function persistSceneKey(key: string | null) {
+  try {
+    if (key) {
+      localStorage.setItem(SCENE_KEY_STORAGE, key)
+    } else {
+      localStorage.removeItem(SCENE_KEY_STORAGE)
+    }
+  } catch {}
+}
 
 export function useSceneManagement(apiRef: React.MutableRefObject<any>, resetCanvas: () => void) {
   const [saveStatus, setSaveStatus] = useState<SceneStatus>('idle')
@@ -18,9 +37,13 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>, resetCan
   const [loadingScenes, setLoadingScenes] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
-  const [currentSceneKey, setCurrentSceneKey] = useState<string | null>(null)
+  const [currentSceneKey, setCurrentSceneKey] = useState<string | null>(loadPersistedSceneKey)
   const [operatingKey, setOperatingKey] = useState<string | null>(null)
   const [operatingType, setOperatingType] = useState<'delete' | 'rename' | 'export-png' | 'export-svg' | null>(null)
+
+  useEffect(() => {
+    persistSceneKey(currentSceneKey)
+  }, [currentSceneKey])
 
   const sceneApi = new SceneApi()
   const { save, update: updateScene } = useSceneSave()
@@ -48,6 +71,21 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>, resetCan
     }
     setLoadingScenes(false)
   }, [])
+
+  const loadLatestScene = useCallback(async () => {
+    if (!apiRef.current) return
+    const exit = await Runtime.runPromiseExit(runtime)(sceneApi.fetchAll())
+    if (exit._tag !== 'Success' || exit.value.length === 0) return
+
+    const sorted = [...exit.value].sort((a, b) => new Date(b.savedAt || 0).getTime() - new Date(a.savedAt || 0).getTime())
+    const latest = sorted[0]
+    if (!latest?.key) return
+
+    const loadExit = await Runtime.runPromiseExit(runtime)(loadScene(latest.key))
+    if (loadExit._tag === 'Success' && loadExit.value) {
+      setCurrentSceneKey(latest.key)
+    }
+  }, [apiRef, loadScene])
 
   const openSidebar = useCallback(async () => {
     setSidebarOpen(true)
@@ -154,6 +192,7 @@ export function useSceneManagement(apiRef: React.MutableRefObject<any>, resetCan
     exportScene: exportSceneHandler,
     saveToServer,
     saveAsNew,
+    loadLatestScene,
     refreshScenes: fetchScenes,
     closeSidebar: () => setSidebarOpen(false),
   }

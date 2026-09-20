@@ -1,17 +1,19 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useEffect } from 'react'
 import { useExcalidrawAPI } from '@/widgets/canvas'
 import { useAutoSave } from '@/features/scene-save'
 import { useLocalExport } from '@/features/scene-export'
 import { useSceneManagement } from '@/hooks'
 import { useKeyboardShortcuts } from '@/shared/hooks'
+import { useAuth } from '@/features/auth'
 import { Canvas } from '@/widgets/canvas'
 import { Toolbar } from '@/widgets/toolbar'
 import { Sidebar } from '@/widgets/sidebar'
 
 export function BoardPage() {
   const { apiRef, handleAPI, getElements, getAppState, resetCanvas } = useExcalidrawAPI()
-  const autoSave = useAutoSave(getElements, getAppState)
+  const { onChange: autoSave, setSceneKey: setAutoSaveSceneKey, flush: flushAutoSave } = useAutoSave(getElements, getAppState)
   const { exportPNG, exportSVG } = useLocalExport(getElements, getAppState)
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   const {
     saveStatus, errorMsg, sidebarOpen, scenes, loadingScenes,
@@ -19,8 +21,20 @@ export function BoardPage() {
     operatingKey, operatingType,
     setEditingName, setEditingKey,
     startEdit, cancelEdit, openSidebar, loadScene, deleteScene,
-    renameScene, exportScene, saveToServer, saveAsNew, refreshScenes, closeSidebar,
+    renameScene, exportScene, saveToServer, saveAsNew, loadLatestScene, refreshScenes, closeSidebar,
   } = useSceneManagement(apiRef, resetCanvas)
+
+  useEffect(() => {
+    setAutoSaveSceneKey(currentSceneKey)
+  }, [currentSceneKey, setAutoSaveSceneKey])
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !currentSceneKey) {
+      loadLatestScene()
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading])
 
   const currentSceneName = useMemo(() => {
     if (!currentSceneKey) return null
@@ -28,7 +42,10 @@ export function BoardPage() {
     return scene?.name ?? null
   }, [currentSceneKey, scenes])
 
-  const handleSave = useCallback(() => saveToServer(), [saveToServer])
+  const handleSave = useCallback(() => {
+    flushAutoSave()
+    saveToServer()
+  }, [flushAutoSave, saveToServer])
 
   useKeyboardShortcuts({
     onSave: handleSave,
