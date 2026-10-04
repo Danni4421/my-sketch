@@ -10,6 +10,7 @@ export function useExcalidrawAPI() {
 
   const getElements = useCallback(() => apiRef.current?.getSceneElements() || [], [])
   const getAppState = useCallback(() => apiRef.current?.getAppState() || {}, [])
+  const getFiles = useCallback(() => apiRef.current?.getFiles() || {}, [])
   const updateScene = useCallback((scene: any) => apiRef.current?.updateScene(scene), [])
 
   const resetCanvas = useCallback(() => {
@@ -22,6 +23,7 @@ export function useExcalidrawAPI() {
     handleAPI,
     getElements,
     getAppState,
+    getFiles,
     updateScene,
     resetCanvas,
   }

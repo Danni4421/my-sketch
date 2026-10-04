@@ -1,8 +1,9 @@
 import { Effect } from 'effect'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import { SceneApi } from '@/entities/scene'
 import { fixCollaborators } from '@/shared/lib/excalidraw-utils'
 import { StorageService, StorageError } from '@/shared/lib/storage-service'
-import { STORAGE_KEY } from '@/shared/config'
+import { STORAGE_KEY, FILES_STORAGE_KEY } from '@/shared/config'
 
 export class LoadError {
   readonly _tag = 'LoadError' as const
@@ -37,6 +38,12 @@ export function useSceneLoad(apiRef: React.MutableRefObject<any>) {
       yield* StorageService.save(STORAGE_KEY, serializeForStorage(fixedScene)).pipe(
         Effect.mapError(() => new LoadError('Failed to save to local storage')),
       )
+
+      const localFiles = StorageService.loadSync<BinaryFiles>(FILES_STORAGE_KEY) || {}
+      const files = { ...localFiles, ...(scene.files || {}) }
+      if (Object.keys(files).length > 0) {
+        apiRef.current?.addFiles(Object.values(files))
+      }
 
       apiRef.current?.updateScene(fixedScene)
       return true

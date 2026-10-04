@@ -12,14 +12,18 @@ function runEffect<R, E>(effect: Effect.Effect<R, E>, onError?: (e: E) => void) 
   })
 }
 
-export function useLocalExport(getElements: () => any[], getAppState: () => any) {
+export function useLocalExport(
+  getElements: () => any[],
+  getAppState: () => any,
+  getFiles: () => Record<string, any>,
+) {
   const exportPNG = useCallback(() => {
-    runEffect(exportAsPng(getElements(), getAppState(), 'sketch-board.png'))
-  }, [getElements, getAppState])
+    runEffect(exportAsPng(getElements(), getAppState(), getFiles(), 'sketch-board.png'))
+  }, [getElements, getAppState, getFiles])
 
   const exportSVG = useCallback(() => {
-    runEffect(exportAsSvg(getElements(), getAppState(), 'sketch-board.svg'))
-  }, [getElements, getAppState])
+    runEffect(exportAsSvg(getElements(), getAppState(), getFiles(), 'sketch-board.svg'))
+  }, [getElements, getAppState, getFiles])
 
   return { exportPNG, exportSVG }
 }

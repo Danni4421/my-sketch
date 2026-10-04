@@ -10,9 +10,9 @@ import { Toolbar } from '@/widgets/toolbar'
 import { Sidebar } from '@/widgets/sidebar'
 
 export function BoardPage() {
-  const { apiRef, handleAPI, getElements, getAppState, resetCanvas } = useExcalidrawAPI()
+  const { apiRef, handleAPI, getElements, getAppState, getFiles, resetCanvas } = useExcalidrawAPI()
   const { onChange: autoSave, setSceneKey: setAutoSaveSceneKey, flush: flushAutoSave } = useAutoSave(getElements, getAppState)
-  const { exportPNG, exportSVG } = useLocalExport(getElements, getAppState)
+  const { exportPNG, exportSVG } = useLocalExport(getElements, getAppState, getFiles)
   const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   const {

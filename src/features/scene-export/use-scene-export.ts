@@ -1,6 +1,9 @@
 import { Effect } from 'effect'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import { SceneApi } from '@/entities/scene'
 import { exportAsPng, exportAsSvg, fixCollaborators } from '@/shared/lib/excalidraw-utils'
+import { StorageService } from '@/shared/lib/storage-service'
+import { FILES_STORAGE_KEY } from '@/shared/config'
 import type { ExportFormat } from '@/shared/lib/types'
 
 export class ExportSceneError {
@@ -23,13 +26,15 @@ export function useSceneExport() {
       const elements = scene.elements || []
       const appState = fixCollaborators(scene.appState || {})
       const name = scene.name || 'scene'
+      const localFiles = StorageService.loadSync<BinaryFiles>(FILES_STORAGE_KEY) || {}
+      const files = { ...localFiles, ...(scene.files || {}) }
 
       if (format === 'png') {
-        yield* exportAsPng(elements, appState, `${name}.png`).pipe(
+        yield* exportAsPng(elements, appState, files, `${name}.png`).pipe(
           Effect.mapError(() => new ExportSceneError('Failed to export PNG')),
         )
       } else {
-        yield* exportAsSvg(elements, appState, `${name}.svg`).pipe(
+        yield* exportAsSvg(elements, appState, files, `${name}.svg`).pipe(
           Effect.mapError(() => new ExportSceneError('Failed to export SVG')),
         )
       }

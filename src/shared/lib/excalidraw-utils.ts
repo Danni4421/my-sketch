@@ -1,5 +1,6 @@
 import { Effect } from 'effect'
 import { exportToBlob, exportToSvg } from '@excalidraw/excalidraw'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 
 export class ExportError {
   readonly _tag = 'ExportError' as const
@@ -32,6 +33,7 @@ export function downloadBlob(blob: Blob, filename: string): Effect.Effect<void, 
 export function exportAsPng(
   elements: readonly unknown[],
   appState: Record<string, unknown>,
+  files: BinaryFiles,
   name: string,
 ): Effect.Effect<void, ExportError> {
   return Effect.tryPromise({
@@ -39,7 +41,7 @@ export function exportAsPng(
       exportToBlob({
         elements,
         appState: { ...appState, collaborators: new Map() },
-        files: {},
+        files,
         exportBackground: true,
         name,
       }) as Promise<Blob>,
@@ -52,6 +54,7 @@ export function exportAsPng(
 export function exportAsSvg(
   elements: readonly unknown[],
   appState: Record<string, unknown>,
+  files: BinaryFiles,
   name: string,
 ): Effect.Effect<void, ExportError> {
   return Effect.tryPromise({
@@ -59,7 +62,7 @@ export function exportAsSvg(
       exportToSvg({
         elements,
         appState: { ...appState, collaborators: new Map() },
-        files: {},
+        files,
         exportBackground: true,
       }).then((svg: any) => new Blob([String(svg)], { type: 'image/svg+xml' })),
     catch: () => new ExportError(`Failed to export SVG: ${name}`),

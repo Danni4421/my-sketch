@@ -1,8 +1,10 @@
 import type React from 'react'
 import { useState, useCallback } from 'react'
 import { Excalidraw, useHandleLibrary } from '@excalidraw/excalidraw'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import { StorageService } from '@/shared/lib'
-import { STORAGE_KEY, API_URL } from '@/shared/config'
+import { STORAGE_KEY, FILES_STORAGE_KEY, API_URL } from '@/shared/config'
+import { usePasteImage } from '@/shared/hooks'
 
 function deserializeAppState(appState: any) {
   if (!appState) return { collaborators: new Map() }
@@ -67,6 +69,8 @@ const libraryAdapter = {
 export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProps) {
   const [api, setApi] = useState<any>(null)
 
+  usePasteImage()
+
   const handleAPI = useCallback((a: any) => {
     setApi(a)
     excalidrawAPI(a)
@@ -78,10 +82,15 @@ export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProp
     validateLibraryUrl: () => true,
   })
 
+  const [initialFiles] = useState<BinaryFiles>(() => {
+    const files = StorageService.loadSync<BinaryFiles>(FILES_STORAGE_KEY)
+    return files && typeof files === 'object' ? files : {}
+  })
   const saved = StorageService.loadSync<{ elements?: any[]; appState?: any }>(STORAGE_KEY)
   const initialData = {
     elements: saved?.elements || [],
     appState: deserializeAppState(saved?.appState),
+    files: initialFiles,
   }
 
   return (
@@ -99,7 +108,7 @@ export function Canvas({ excalidrawAPI, onChange, renderTopRightUI }: CanvasProp
           saveToActiveFile: false, loadScene: false,
           clearCanvas: false, changeViewBackgroundColor: false,
         },
-        tools: { image: false },
+        tools: { image: true },
       }}
       initialData={initialData}
       onChange={onChange}

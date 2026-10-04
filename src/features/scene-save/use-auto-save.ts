@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react'
 import { Runtime } from 'effect'
+import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import { StorageService } from '@/shared/lib/storage-service'
-import { STORAGE_KEY } from '@/shared/config'
+import { STORAGE_KEY, FILES_STORAGE_KEY } from '@/shared/config'
 import { SceneApi } from '@/entities/scene'
 
 const runtime = Runtime.defaultRuntime
@@ -19,9 +20,20 @@ export function useAutoSave(_getElements: () => any[], _getAppState: () => any) 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingRef = useRef<{ elements: any[]; appState: Record<string, unknown> } | null>(null)
   const sceneKeyRef = useRef<string | null>(null)
+  const filesSignatureRef = useRef<string | null>(null)
 
   const setSceneKey = useCallback((key: string | null) => {
     sceneKeyRef.current = key
+  }, [])
+
+  const persistFiles = useCallback((files: BinaryFiles | undefined) => {
+    if (!files || typeof files !== 'object') return
+    const ids = Object.keys(files)
+    if (ids.length === 0) return
+    const signature = ids.join(',')
+    if (filesSignatureRef.current === signature) return
+    filesSignatureRef.current = signature
+    Runtime.runPromiseExit(runtime)(StorageService.save(FILES_STORAGE_KEY, files))
   }, [])
 
   const flush = useCallback(() => {
@@ -39,8 +51,9 @@ export function useAutoSave(_getElements: () => any[], _getAppState: () => any) 
     )
   }, [])
 
-  const onChange = useCallback((elements: any, appState: any) => {
+  const onChange = useCallback((elements: any, appState: any, files?: BinaryFiles) => {
     const serialized = serializeAppState(appState)
+    persistFiles(files)
 
     Runtime.runPromiseExit(runtime)(
       StorageService.save(STORAGE_KEY, {
@@ -66,7 +79,7 @@ export function useAutoSave(_getElements: () => any[], _getAppState: () => any) 
         timerRef.current = null
       }, DEBOUNCE_MS)
     }
-  }, [])
+  }, [persistFiles])
 
   return { onChange, setSceneKey, flush }
 }
